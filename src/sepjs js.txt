@@ -1,0 +1,222 @@
+//Acknowledging the NASA Exoplanet Archive in Publications
+//"This research has made use of the NASA Exoplanet Archive, which is operated by the California Institute of Technology, under contract with the National Aeronautics and Space Administration under the Exoplanet Exploration Program."
+//Column Defenitions
+//https://exoplanetarchive.ipac.caltech.edu/applications/DocSet/index.html?doctree=/docs/docmenu.xml&startdoc=1
+async function apod(elem) {
+    //read our JSON
+    let response = await fetch('https://api.nasa.gov/planetary/apod?api_key=jQWxQhWE1foKhaNXimPIbrlCkWtEpQcyCpIwFqYY');
+    let result = await response.json();
+    console.log(result.url)
+    console.log(result.media_type)
+    /*  	
+      		var img = new Image();
+      		img.src = result.url;
+      		console.log(elem)
+      		elem.appendChild(img);
+    */
+    if (result.media_type == 'video') {
+        var media = document.createElement("iframe");
+        media.setAttribute("width", "700");
+        media.setAttribute("height", "400");
+    } else {
+        var media = document.createElement("img");
+    }
+    media.setAttribute("src", result.url);
+
+    elem.appendChild(media);
+
+    var itpara = document.createElement("H2");
+    var itnode = document.createTextNode(result.title);
+    itpara.appendChild(itnode);
+    elem.appendChild(itpara)
+    var para = document.createElement("P");
+    //var node = document.createTextNode("Explanation: " + result.explanation);
+    var node = document.createTextNode(result.explanation);
+    para.appendChild(node);
+    elem.appendChild(para)
+    //alert(result.url);
+
+
+}
+
+
+async function asteroids(asteroidstbldate) {
+    //console.log($("#aDate").val());
+    var selectedDate = $("#aDate").val();
+    if (selectedDate == "") {
+        console.log("date is not selected");
+    }
+
+    var url = 'https://api.nasa.gov/neo/rest/v1/feed?api_key=jQWxQhWE1foKhaNXimPIbrlCkWtEpQcyCpIwFqYY&start_date=' + selectedDate + '&end_date=' + selectedDate;
+    //let response =  await fetch('https://api.nasa.gov/neo/rest/v1/feed?api_key=jQWxQhWE1foKhaNXimPIbrlCkWtEpQcyCpIwFqYY&start_date=2021-04-18&end_date=2021-04-18');
+    let response = await fetch(url);
+    let result = await response.json();
+    //console.log(result);
+    //console.log(result["near_earth_objects"]);
+    obj = result["near_earth_objects"];
+    var keys = [];
+    Object.keys(obj).forEach(function(key) {
+        //console.log(key);
+        keys.push(key)
+    });
+    console.log(keys);
+
+    var tempdata = result["near_earth_objects"][keys[0]];
+    //console.log(tempdata)
+
+    var flattendata = [];
+
+    for (var i = 0; i < tempdata.length; i++) {
+        //console.log(tempdata[i])
+        var tempobj = {};
+        tempobj.name = tempdata[i].name;
+        tempobj.nasa_jpl_url = tempdata[i].nasa_jpl_url;
+        tempobj.is_potentially_hazardous_asteroid = tempdata[i].is_potentially_hazardous_asteroid;
+        tempobj.absolute_magnitude_h = tempdata[i].absolute_magnitude_h;
+        tempobj.estimated_diameter_max = tempdata[i].estimated_diameter.meters.estimated_diameter_max;
+        tempobj.estimated_diameter_min = tempdata[i].estimated_diameter.meters.estimated_diameter_min;
+        tempobj.miss_distance = tempdata[i].close_approach_data[0].miss_distance.miles;
+        tempobj.relative_velocity = tempdata[i].close_approach_data[0].relative_velocity.miles_per_hour
+        flattendata.push(tempobj)
+    }
+    console.log(flattendata.sort((a, b) => parseFloat(b.absolute_magnitude_h) - parseFloat(a.absolute_magnitude_h)));
+    tempsortedflattendata = flattendata.sort((a, b) => parseFloat(b.absolute_magnitude_h) - parseFloat(a.absolute_magnitude_h));
+    sortedflattendata = tempsortedflattendata.sort(function(a, b) {
+        if (a.is_potentially_hazardous_asteroid > b.is_potentially_hazardous_asteroid) {
+            return -1;
+        }
+        if (a.is_potentially_hazardous_asteroid < b.is_potentially_hazardous_asteroid) {
+            return 1;
+        }
+        return 0;
+    })
+    /*
+      		for (var i=0;i<flattendata.length; i++)
+      		{
+
+      		}
+    */
+    $(document).ready(function() {
+        var table = $('#asteroidstbl').DataTable({
+            /*    
+        data: result["near_earth_objects"][keys[0]].sort((a, b) => parseFloat(b.absolute_magnitude_h) - parseFloat(a.absolute_magnitude_h)),
+		columns: [
+            { title: "Name", data: "name" },
+            { title: "NASA JPL URL", data: "nasa_jpl_url" },
+            { title: "Is Potentially Hazardous Asteroid", data: "is_potentially_hazardous_asteroid" },
+            { title: "Absolute Magnitude", data: "absolute_magnitude_h" },
+ 			{ title: "Estimated Diameter Max (meters)", data: "estimated_diameter.meters.estimated_diameter_max" },
+ 			{ title: "Estimated Diameter Min (meters)", data: "estimated_diameter.meters.estimated_diameter_min" },
+ 			{ title: "Miss Distance (miles)", data: "close_approach_data[0].miss_distance.miles" },
+ 			{ title: "Relative Velocity (miles per hour)", data: "close_approach_data[0].relative_velocity.miles_per_hour" }
+        ]
+*/
+            "order": [],
+            data: sortedflattendata,
+            columns: [{
+                    title: "Name",
+                    data: "name"
+                },
+                {
+                    title: "NASA JPL URL",
+                    data: "nasa_jpl_url",
+                    "render": function(data, type, row, meta) {
+                        if (type === 'display') {
+                            data = '<a href="' + data + '">' + data + '</a>';
+                        }
+                        return data;
+                    }
+                },
+                {
+                    title: "Is Potentially Hazardous Asteroid",
+                    data: "is_potentially_hazardous_asteroid"
+                },
+                {
+                    title: "Absolute Magnitude",
+                    data: "absolute_magnitude_h"
+                },
+                {
+                    title: "Estimated Diameter Max (meters)",
+                    data: "estimated_diameter_max"
+                },
+                {
+                    title: "Estimated Diameter Min (meters)",
+                    data: "estimated_diameter_min"
+                },
+                {
+                    title: "Miss Distance (miles)",
+                    data: "miss_distance"
+                },
+                {
+                    title: "Relative Velocity (miles per hour)",
+                    data: "relative_velocity"
+                }
+            ]
+
+
+
+        });
+    });
+
+}
+
+async function exop(example) {
+    //let response =  await fetch('https://exoplanetarchive.ipac.caltech.edu/cgi-bin/nstedAPI/nph-nstedAPI?table=exoplanets&select=pl_hostname,pl_letter&format=json&where=pl_kepflag=1&api_key=jQWxQhWE1foKhaNXimPIbrlCkWtEpQcyCpIwFqYY');
+    let response =  await fetch('https://exoplanetarchive.ipac.caltech.edu/cgi-bin/nstedAPI/nph-nstedAPI?table=exoplanets&format=json&where=pl_kepflag=1&api_key=jQWxQhWE1foKhaNXimPIbrlCkWtEpQcyCpIwFqYY');
+    //We could use the above API call or load the data from file as below 
+    //let response = await fetch('TableExoplanets.json');
+    let result = await response.json();
+    console.log(result[0])
+
+    $(document).ready(function() {
+        var table = $('#expotbl').DataTable({
+            data: result,
+            columns: [{
+                    title: "Host Star Name",
+                    data: "pl_hostname"
+                },
+                {
+                    title: "Planet Letter",
+                    data: "pl_letter"
+                },
+                {
+                    title: "Planet Name",
+                    data: "pl_name"
+                },
+                {
+                    title: "Discovery Method",
+                    data: "pl_discmethod"
+                },
+                {
+                    title: "Controversial Flag",
+                    data: "pl_controvflag"
+                },
+                {
+                    title: "Number of Planets in System",
+                    data: "pl_pnum"
+                },
+                {
+                    title: "Orbital Period (days)",
+                    data: "pl_orbper"
+                }
+            ]
+
+
+        });
+        //retribve cell data on click 
+        $('#expotbl tbody').on('click', 'td', function() {
+            var cell = table.cell(this).data();
+            console.log('You clicked on ' + cell + '\'s cell');
+        });
+
+        //retribve row data on click 
+        $('#expotbl tbody').on('click', 'tr', function() {
+            let rowdata = table.row(this).data();
+            console.log(table.row(this).data());
+            console.log('You clicked on ' + rowdata.pl_hostname + '\'s row');
+            window.open('http://127.0.0.1:8080/test.html', '_blank');
+        });
+
+    });
+
+}
